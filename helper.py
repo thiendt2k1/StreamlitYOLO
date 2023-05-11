@@ -1,13 +1,29 @@
 import streamlit as st
-# import firebase_admin
-# from firebase_admin import auth, firestore, db, storage
-from firebase_admin import auth
+# import pyrebase
+# # from pyrebase import auth, firestore, db, storage
+# from pyrebase import auth
 from datetime import datetime
 from PIL import Image
 import os
 import detect 
 import numpy as np
+from pyrebase import pyrebase
 
+firebase = pyrebase.initialize_app(
+    {
+    "apiKey": "AIzaSyBycpbkiKIMWQZrKhkfXfr1KJBNrhLvQkE",
+    "authDomain": "diseasedetection-3332e.firebaseapp.com",
+    "databaseURL": "https://diseasedetection-3332e-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "projectId": "diseasedetection-3332e",
+    "storageBucket": "diseasedetection-3332e.appspot.com",
+    "messagingSenderId": "1037571143092",
+    "appId": "1:1037571143092:web:2a3fce17792c2b90f66ee1"
+    }
+)
+
+def get_users():
+    """Gets a list of all users in the Firebase database."""
+    return firebase.database().child("users").get()
 
 def imageInput():
     image_file = st.file_uploader("Upload An Image", type=['png', 'jpeg', 'jpg'])
@@ -93,52 +109,40 @@ def play_webcam(conf):
                         use_column_width=True
                         )
 
-def login_firebase():
-    app = firebase_admin.get_app()
-    auth_service = auth.Auth(app=app)
-    with st.sidebar.expander("Login"):
-        with st.sidebar.form(key = "login"):
-            email = st.sidebar.text_input("Email")
-            password = st.sidebar.text_input("Password", type="password")
-            submit = st.button("Login")
-            if submit:
-                try:
-                    auth_service.sign_in_with_email_and_password(email, password)
-                    st.success("You have successfully logged in!")
-                except:
-                    st.error("Invalid email or password. Please try again.")
+# def login_firebase():
+#     app = pyrebase.get_app()
+#     auth_service = app.auth(app=app)
+#     with st.form(key = "login"):
+#         email = st.sidebar.text_input("Email")
+#         password = st.sidebar.text_input("Password", type="password")
+#         submit = st.sidebar.button("Login")
+#         if submit:
+#             try:
+#                 auth_service.sign_in_with_email_and_password(email, password)
+#                 st.success("You have successfully logged in!")
+#             except:
+#                 st.error("Invalid email or password. Please try again.")
 
-def signup_firebase():
-#     email = st.text_input("Email")
-#     password = st.text_input("Password", type="password")
-#     name = st.text_input("Name")
-#     if st.button("Sign Up"):
-#         try:
-#             user = auth.create_user(
-#                 email = email,
-#                 password = password,
-#                 name = name
-#             )
-#             st.success("You have successfully signed up!")
-#         except:
-#             st.error("Something went wrong. Please try again.")
-    app = firebase_admin.get_app()
-    auth_service = auth.Auth(app=app)
-    with st.sidebar.expander("Sign up"):
-        email = st.sidebar.text_input("Email")
-        password = st.sidebar.text_input("Password")
-        username = st.sidebar.text_input("Username")
-        submit = st.sidebar.button("Sign up")
+# def signup_firebase():
+    
+#     app = pyrebase.get_app()
+#     auth_service = app.Auth(app=app)
+#     with st.form("Sign up"):    
+#         email = st.sidebar.text_input("Email")
+#         password = st.sidebar.text_input("Password")
+#         username = st.sidebar.text_input("Username")
+#         submit = st.sidebar.button("Sign up")
 
-    # If the user clicks the signup button, try to sign up the user with the provided credentials
-    if submit:
-      try:
-        user = auth_service.create_user_with_email_and_password(email, password)
-        auth_service.update_user(user['uid'], {'displayName': username})
-        st.success("Signup successful!")
-      except auth_service.AuthError:
-        st.error("Signup failed!")
+#     # If the user clicks the signup button, try to sign up the user with the provided credentials
+#     if submit:
+#       try:
+#         user = auth_service.create_user_with_email_and_password(email, password)
+#         auth_service.update_user(user['uid'], {'displayName': username})
+#         st.success("Signup successful!")
+#       except auth_service.AuthError:
+#         st.error("Signup failed!")
 
+   
 # def upload_file(video):
 #     ts = datetime.timestamp(datetime.now())
 #     filename = str(ts) + video.name 

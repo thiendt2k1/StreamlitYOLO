@@ -4,8 +4,10 @@ from io import *
 import wget
 import time
 import helper
-import firebase_admin
+#import firebase_admin
+from pyrebase import pyrebase
 
+#from gcloud import auth
 ## CFG
 cfg_model_path = "models/best.pt" 
 
@@ -15,38 +17,49 @@ if cfg_enable_url_download:
     cfg_model_path = f"models/{url.split('/')[-1:][0]}" #config model path from url name
 
 
-
-
 ## END OF CFG
 
 def main():
-    #cred_obj = firebase_admin.credentials.Certificate('diseasedetection-3332e-firebase-adminsdk-eofbd-9784e0582b.json')
-    # app = firebase_admin.initialize_app(cred_obj, {
+    # cred_obj = firebase_admin.credentials.Certificate('diseasedetection-3332e-firebase-adminsdk-eofbd-9784e0582b.json')
+    # admin = firebase_admin.initialize_app(cred_obj, {
 	# "databaseURL": "https://diseasedetection-3332e-default-rtdb.asia-southeast1.firebasedatabase.app"})
     
-    firebaseConfig = {
-  "apiKey": "AIzaSyBycpbkiKIMWQZrKhkfXfr1KJBNrhLvQkE",
-  "authDomain": "diseasedetection-3332e.firebaseapp.com",
-  "databaseURL": "https://diseasedetection-3332e-default-rtdb.asia-southeast1.firebasedatabase.app",
-  "projectId": "diseasedetection-3332e",
-  "storageBucket": "diseasedetection-3332e.appspot.com",
-  "messagingSenderId": "1037571143092",
-  "appId": "1:1037571143092:web:2a3fce17792c2b90f66ee1"
-}
+    # firebaseConfig = {
+    # "apiKey": "AIzaSyBycpbkiKIMWQZrKhkfXfr1KJBNrhLvQkE",
+    # "authDomain": "diseasedetection-3332e.firebaseapp.com",
+    # "databaseURL": "https://diseasedetection-3332e-default-rtdb.asia-southeast1.firebasedatabase.app",
+    # "projectId": "diseasedetection-3332e",
+    # "storageBucket": "diseasedetection-3332e.appspot.com",
+    # "messagingSenderId": "1037571143092",
+    # "appId": "1:1037571143092:web:2a3fce17792c2b90f66ee1"
+    # }
+    firebase = pyrebase.initialize_app(
+    {
+    "apiKey": "AIzaSyBycpbkiKIMWQZrKhkfXfr1KJBNrhLvQkE",
+    "authDomain": "diseasedetection-3332e.firebaseapp.com",
+    "databaseURL": "https://diseasedetection-3332e-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "projectId": "diseasedetection-3332e",
+    "storageBucket": "diseasedetection-3332e.appspot.com",
+    "messagingSenderId": "1037571143092",
+    "appId": "1:1037571143092:web:2a3fce17792c2b90f66ee1"
+    }
+)
 
-    app = firebase_admin.initialize_app(firebaseConfig)
-	
+if st.button("Get Users"):
+    users = helper.get_users()
+    st.write("Users:", users)
+
     # -- Sidebar
     st.sidebar.title('⚙️Options')
     
     option = st.sidebar.radio("Select input type.", ['Image', 'Video', 'Webcam'])
 
-    choice = st.sidebar.selectbox('Login/Signup', ['Login', 'Sign up'])
+    choice = st.sidebar.selectbox('Login/Signup', ["Login", "Sign up"])
     # -- End of Sidebar
 
     st.header('Coffee diseases detection')
     st.subheader('👈🏽 Select options left-haned menu bar.')
-    st.sidebar.markdown("Github")
+    st.sidebar.markdown("https://github.com/thiendt2k1/StreamlitYOLO")
     if option == "Image":    
         helper.imageInput()
     elif option == "Video": 
@@ -58,9 +71,6 @@ def main():
     elif choice == "Signup":
         helper.signup_firebase()
     
-def helper_function():
-  # Get a reference to the app
-  app = firebase_admin.get_app()
 
 if __name__ == '__main__':
     
