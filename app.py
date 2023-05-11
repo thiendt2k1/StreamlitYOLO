@@ -45,31 +45,29 @@ def main():
     }
 )
 
-if st.button("Get Users"):
-    users = helper.get_users()
-    st.write("Users:", users)
-
     # -- Sidebar
     st.sidebar.title('⚙️Options')
     
-    option = st.sidebar.radio("Select input type.", ['Image', 'Video', 'Webcam'])
+    option = st.sidebar.radio("Select input type.", ['Image', 'Video', 'Webcam', 'Login/Signup'])
 
-    choice = st.sidebar.selectbox('Login/Signup', ["Login", "Sign up"])
+    choice = st.sidebar.selectbox('Login/Signup', ["Login", "Signup"])
     # -- End of Sidebar
 
     st.header('Coffee diseases detection')
     st.subheader('👈🏽 Select options left-haned menu bar.')
     st.sidebar.markdown("https://github.com/thiendt2k1/StreamlitYOLO")
+
     if option == "Image":    
         helper.imageInput()
     elif option == "Video": 
         helper.videoInput()
     elif option == "Webcam": 
         helper.play_webcam(0.4)
-    elif choice == "Login":
-        helper.login_firebase()
-    elif choice == "Signup":
-        helper.signup_firebase()
+    elif option == "Login/Signup":
+        if choice == "Login":
+            helper.login_firebase()
+        elif choice == "Signup":
+            helper.signup_firebase()
     
 
 if __name__ == '__main__':
