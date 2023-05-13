@@ -16,7 +16,6 @@ if cfg_enable_url_download:
     url = "https://archive.org/download/best/best.pt" #Configure this if you set cfg_enable_url_download to True
     cfg_model_path = f"models/{url.split('/')[-1:][0]}" #config model path from url name
 
-
 ## END OF CFG
 
 def main():
@@ -24,15 +23,6 @@ def main():
     # admin = firebase_admin.initialize_app(cred_obj, {
 	# "databaseURL": "https://diseasedetection-3332e-default-rtdb.asia-southeast1.firebasedatabase.app"})
     
-    # firebaseConfig = {
-    # "apiKey": "AIzaSyBycpbkiKIMWQZrKhkfXfr1KJBNrhLvQkE",
-    # "authDomain": "diseasedetection-3332e.firebaseapp.com",
-    # "databaseURL": "https://diseasedetection-3332e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    # "projectId": "diseasedetection-3332e",
-    # "storageBucket": "diseasedetection-3332e.appspot.com",
-    # "messagingSenderId": "1037571143092",
-    # "appId": "1:1037571143092:web:2a3fce17792c2b90f66ee1"
-    # }
     firebase = pyrebase.initialize_app(
     {
     "apiKey": "AIzaSyBycpbkiKIMWQZrKhkfXfr1KJBNrhLvQkE",
@@ -44,7 +34,8 @@ def main():
     "appId": "1:1037571143092:web:2a3fce17792c2b90f66ee1"
     }
 )
-
+    if 'cookie' not in st.session_state:
+        st.session_state['cookie'] = None
     # -- Sidebar
     st.sidebar.title('⚙️Options')
     
@@ -68,7 +59,12 @@ def main():
             helper.login_firebase()
         elif choice == "Signup":
             helper.signup_firebase()
+    # else:
+    #     # Create a button to start the webcam feed
+    #     helper.realtime()
     
+# Call the start_webcam() function when the 'Start Webcam' button is clicked
+
 
 if __name__ == '__main__':
     

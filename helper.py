@@ -1,4 +1,5 @@
 import streamlit as st
+#import streamlit_cookies 
 # import pyrebase
 # # from pyrebase import auth, firestore, db, storage
 # from pyrebase import auth
@@ -8,17 +9,16 @@ import os
 import detect 
 import numpy as np
 from pyrebase import pyrebase
-
-firebase = pyrebase.initialize_app(
-    {
-    "apiKey": "AIzaSyBycpbkiKIMWQZrKhkfXfr1KJBNrhLvQkE",
-    "authDomain": "diseasedetection-3332e.firebaseapp.com",
-    "databaseURL": "https://diseasedetection-3332e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "projectId": "diseasedetection-3332e",
-    "storageBucket": "diseasedetection-3332e.appspot.com",
-    "messagingSenderId": "1037571143092",
-    "appId": "1:1037571143092:web:2a3fce17792c2b90f66ee1"
-    }
+import cv2
+import torch
+app = pyrebase.initialize_app({
+  "apiKey": "AIzaSyBycpbkiKIMWQZrKhkfXfr1KJBNrhLvQkE",
+  "authDomain": "diseasedetection-3332e.firebaseapp.com",
+  "databaseURL": "https://diseasedetection-3332e-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "diseasedetection-3332e",
+  "storageBucket": "diseasedetection-3332e.appspot.com",
+  "messagingSenderId": "1037571143092",
+  "appId": "1:1037571143092:web:2a3fce17792c2b90f66ee1"}
 )
 
 def imageInput():
@@ -33,14 +33,14 @@ def imageInput():
         
         with open(imgpath, mode="wb") as f:
             f.write(image_file.getbuffer())
-            upload_file(image_file)
+            upload_file(imgpath, 'initial')
 
-        detect.detect(weights = 'models/best.pt', source = imgpath, project = 'uploads' , name= 'images')
+        detect.detect(weights = 'models/best.pt', source = imgpath, project = 'uploads' , name= 'images', device = 0)
         
         #--Display predicton
         outputpath = os.path.join(str(newestFile('uploads')), os.path.basename(imgpath))
         img_ = Image.open(outputpath)
-        upload_file(img_)
+        upload_file(outputpath, 'detected')
         with col2:
             st.image(img_, caption='Model Prediction(s)', use_column_width='always')
 
@@ -49,7 +49,7 @@ def videoInput():
     if uploaded_video != None:
 
         ts = datetime.timestamp(datetime.now())
-        imgpath = os.path.join('data/uploads', str(ts).replace(".", "") + uploaded_video.name)
+        imgpath = os.path.join('uploads', str(ts).replace(".", "") + uploaded_video.name)
         outputpath = os.path.join(newestFile('uploads'), os.path.basename(imgpath))
 
         with open(imgpath, mode='wb') as f:
@@ -59,15 +59,14 @@ def videoInput():
         video_bytes = st_video.read()
         st.video(video_bytes)
         st.write("Uploaded Video")
-        upload_file(video_bytes)
-        detect.detect(weights = 'models/best.pt', source = imgpath, project = 'uploads' , name= 'videos')
-        
+        upload_file(imgpath, 'initial')
+        detect.detect(weights = 'models/best.pt', source = imgpath, project = 'uploads' , name= 'videos', device = 0)
         
         outputpath = os.path.join(str(newestFile('uploads')), os.path.basename(imgpath))
         st_video2 = open(outputpath, 'rb')
         video_bytes2 = st_video2.read()
         st.video(video_bytes2)
-        upload_file(video_bytes)
+        upload_file(outputpath, 'detected')
         st.write("Model Prediction")
 
 def newestFile(folder):
@@ -105,47 +104,52 @@ def play_webcam(conf):
                         use_column_width=True
                         )
 
+def realtime():
+    if st.button('Start Webcam'):
+        camera = cv2.VideoCapture(0)
+        detect.detect(weights = 'models/best.pt', source = "0", project = 'uploads' , name = 'realtime', device = "0", nosave = True)
+
+
 def login_firebase():
-    with st.expander("Login"):
+    with st.form("Login"):
         email = st.text_input("Email", key="email")
         password = st.text_input("Password", type="password", key="password")
-        submit = st.button("Login", key="submit")
+        submit = st.form_submit_button()
         if submit:
             try:
-                user = firebase.auth().sign_in_with_email_and_password(email, password)
-                firebase.auth().current_user.update()
+                user = app.auth().sign_in_with_email_and_password(email, password)
+                user_id = user['localId'] #uid to find and search
+                st.session_state.cookie = str(user_id) + str(datetime.timestamp(datetime.now())) 
                 st.success("You have successfully logged in!")
-            except:
+            except Exception as e:
                 st.error("Invalid email or password. Please try again.")
+                st.exception(e)
 
 def signup_firebase():
-    with st.expander("Signup"):    
+    with st.form("Signup"):    
         email = st.text_input("Email", key="email")
         password = st.text_input("Password", type="password", key="password")
         username = st.text_input("Username", key="username")
-        submit = st.button("Signup", key="submit")
+        submit = st.form_submit_button()
 
     # If the user clicks the signup button, try to sign up the user with the provided credentials
     if submit:
       try:
-        user = firebase.auth().create_user_with_email_and_password(email, password)
-        firebase.auth().update_user(user['uid'], {'displayName': username})
+        app.auth().create_user_with_email_and_password(email, password)
         st.success("Signup successful!")
-      except firebase.auth().AuthError:
-        st.error("Signup failed!")
+      except Exception as e:
+                st.error("Signup failed")
+                st.exception(e)
 
    
-def upload_file(video):
-    if firebase.auth().current_user is not None:
+def upload_file(video, state):
+    if st.session_state['cookie'] is not None:
         try:
-            ts = datetime.timestamp(datetime.now())
-            filename = str(ts) + video.name 
-            blob = firebase.storage().bucket.blob(filename)
-            blob.upload_from_file(video)
+            fileRef = app.storage().child(str(state)).child(video).put(video)
             st.success("Upload successful!")
-        except firebase.storage().StorageError as e:
+        except Exception as e:
             # Handle the error
-            print(e)
-            st.write("An error occured, click this to read", e)
+            st.write("An error occured, click this to read")
+            st.exception(e)
     else:
         st.write("You can login/signup to backup your detection")
