@@ -1,16 +1,26 @@
 import streamlit as st
 #import streamlit_cookies 
-# import pyrebase
-# # from pyrebase import auth, firestore, db, storage
+import pyrebase
+#from pyrebase import auth, firestore, db, storage
 # from pyrebase import auth
 from datetime import datetime
 from PIL import Image
 import os
 import detect 
 import numpy as np
-from pyrebase import pyrebase
+#from pyrebase import pyrebase
+#from firebase_admin import firestore, credentials
+#import firebase_admin
 import cv2
-import torch
+
+# db = firestore.client()
+# doc_ref = db.collection(u'applications')
+
+# # Import data
+# df = pd.read_csv('PPP_data.csv')
+# tmp = df.to_dict(orient='records')
+# list(map(lambda x: doc_ref.add(x), tmp))
+
 app = pyrebase.initialize_app({
   "apiKey": "AIzaSyBycpbkiKIMWQZrKhkfXfr1KJBNrhLvQkE",
   "authDomain": "diseasedetection-3332e.firebaseapp.com",
@@ -20,6 +30,9 @@ app = pyrebase.initialize_app({
   "messagingSenderId": "1037571143092",
   "appId": "1:1037571143092:web:2a3fce17792c2b90f66ee1"}
 )
+database = app.database()
+auth = app.auth()
+storage = app.storage()
 
 def imageInput():
     image_file = st.file_uploader("Upload An Image", type=['png', 'jpeg', 'jpg'])
@@ -35,37 +48,34 @@ def imageInput():
             f.write(image_file.getbuffer())
             upload_file(imgpath, 'initial')
 
-        detect.detect(weights = 'models/best.pt', source = imgpath, project = 'uploads' , name= 'images', device = 0)
-        
+        detect.detect(weights = 'models/best.pt', source = imgpath, project = 'uploads' , name= 'images', device = 0, save_txt = True, conf_thres=0.4)
         #--Display predicton
         outputpath = os.path.join(str(newestFile('uploads')), os.path.basename(imgpath))
         img_ = Image.open(outputpath)
+        #st.write(os.path.join("labels", str.replace(outputpath, "jpg", "txt")))
+        #upload_file(os.path.join("labels", str.replace(outputpath, "jpg", "txt")), 'detected')
         upload_file(outputpath, 'detected')
         with col2:
             st.image(img_, caption='Model Prediction(s)', use_column_width='always')
 
 def videoInput():
     uploaded_video = st.file_uploader("Upload Video", type=['mp4', 'mpeg', 'mov'])
-    if uploaded_video != None:
+    if uploaded_video is not None:
+        
+        st.video(uploaded_video)
+        st.write("Uploaded Video")
 
         ts = datetime.timestamp(datetime.now())
-        imgpath = os.path.join('uploads', str(ts).replace(".", "") + uploaded_video.name)
-        outputpath = os.path.join(newestFile('uploads'), os.path.basename(imgpath))
+        videopath = os.path.join('uploads', str(ts).replace(".", "") + uploaded_video.name)
 
-        with open(imgpath, mode='wb') as f:
+        with open(videopath, mode='wb') as f:
             f.write(uploaded_video.read())  # save video to disk
+            upload_file(videopath, 'initial')
 
-        st_video = open(imgpath, 'rb')
-        video_bytes = st_video.read()
-        st.video(video_bytes)
-        st.write("Uploaded Video")
-        upload_file(imgpath, 'initial')
-        detect.detect(weights = 'models/best.pt', source = imgpath, project = 'uploads' , name= 'videos', device = 0)
+        detect.detect(weights = 'models/best.pt', source = videopath, project = 'uploads' , name= 'videos', device = 0)
         
-        outputpath = os.path.join(str(newestFile('uploads')), os.path.basename(imgpath))
-        st_video2 = open(outputpath, 'rb')
-        video_bytes2 = st_video2.read()
-        st.video(video_bytes2)
+        outputpath = os.path.join(str(newestFile('uploads')), os.path.basename(videopath))
+        st.video(open(outputpath, 'rb').read())
         upload_file(outputpath, 'detected')
         st.write("Model Prediction")
 
@@ -117,9 +127,9 @@ def login_firebase():
         submit = st.form_submit_button()
         if submit:
             try:
-                user = app.auth().sign_in_with_email_and_password(email, password)
+                user = auth.sign_in_with_email_and_password(email, password)
                 user_id = user['localId'] #uid to find and search
-                st.session_state.cookie = str(user_id) + str(datetime.timestamp(datetime.now())) 
+                st.session_state.cookie = str(user_id) 
                 st.success("You have successfully logged in!")
             except Exception as e:
                 st.error("Invalid email or password. Please try again.")
@@ -135,17 +145,19 @@ def signup_firebase():
     # If the user clicks the signup button, try to sign up the user with the provided credentials
     if submit:
       try:
-        app.auth().create_user_with_email_and_password(email, password)
+        auth.create_user_with_email_and_password(email, password)
         st.success("Signup successful!")
       except Exception as e:
                 st.error("Signup failed")
                 st.exception(e)
 
-   
 def upload_file(video, state):
     if st.session_state['cookie'] is not None:
         try:
-            fileRef = app.storage().child(str(state)).child(video).put(video)
+            fileRef = storage.child(str(state)).child(video).put(video)
+            #jsonResult = readLabel(str.replace(video, "jpg", "txt"))
+            #data = {"fileRef": storage.child(os.path.join(state, "uploads", video)).get_url(None), "UserToken": st.session_state['cookie'], "detected": jsonResult}
+            #dataUpload = database.child("Detection").push(data)
             st.success("Upload successful!")
         except Exception as e:
             # Handle the error
@@ -153,3 +165,9 @@ def upload_file(video, state):
             st.exception(e)
     else:
         st.write("You can login/signup to backup your detection")
+
+def readLabel(file_name):
+  with open(file_name, "r") as f:
+    contents = f.readlines()
+    result = line.spilt()[0] 
+  return [line.split()[0] for line in contents]
